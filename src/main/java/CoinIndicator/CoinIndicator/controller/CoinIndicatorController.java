@@ -21,21 +21,14 @@ public class CoinIndicatorController {
     private final String  defaultPeriod = "14";
     private final CoinIndicatorService coinIndicatorService;
 
-    @GetMapping("/minutes")
-    public ResponseEntity<?> getMinuteIndicators(@RequestParam String market,
-                                                 @RequestParam(required = false, defaultValue = defaultIntervalValue)
-                                                 @Pattern(regexp = "60|240", message = "Invalid intervalValue. Allowed values are 60 or 240.")
-                                                 String intervalValue,
-                                                 @RequestParam(required = false, defaultValue = defaultPeriod) int period) {
-        CoinIndicatorResponse response = coinIndicatorService.getValueByMinutes(market, intervalValue, period);
-
-        return ResponseEntity.ok(response);
-    }
-
+    //TODO: 웹소켓 구독으로 변경 예정
     @GetMapping
     public ResponseEntity<?> getIndicators(@RequestParam String market,
-                                           @RequestParam Interval interval) {
+                                                 @RequestParam(required = false, defaultValue = defaultIntervalValue)
+                                                 Interval interval,
+                                                 @RequestParam(required = false, defaultValue = defaultPeriod) int period) {
+        CoinIndicatorResponse response = coinIndicatorService.getIndicatorByMinutes(market, interval, period);
 
-        return ResponseEntity.ok(null);
+        return ResponseEntity.ok(response);
     }
 }

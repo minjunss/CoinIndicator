@@ -26,6 +26,8 @@ repositories {
 dependencies {
 	//web
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	//redis
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	//OKHttp
 	implementation group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
 	//lombok

@@ -9,23 +9,28 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 @Service
 @RequiredArgsConstructor
 public class CoinIndicatorService {
     private final Gson gson;
+    private final RedisService redisService;
 
-    public CoinIndicatorResponse getValueByMinutes(String market, String intervalValue, int period) {
-        String candles = callCandleByMinutes(market, intervalValue);
+    //분봉 보조지표 값
+    public CoinIndicatorResponse getIndicatorByMinutes(String market, Interval interval, int period) {
 
-        double rsi = calculateRSI(candles, period);
+        double rsi = calculateRSI(market, interval, period);
 
         return CoinIndicatorResponse.builder()
                 .market(market)
@@ -38,30 +43,42 @@ public class CoinIndicatorService {
                 .build();
     }
 
-    public CoinIndicatorResponse getValue(String market, Interval interval, int count) {
-        return null;
-    }
-
-    private String callCandleByMinutes(String market, String intervalValue) {
+    //시세캔들 api 콜
+    //TODO: 반복 배치 1~2초
+    private void callCandles(String market, Interval interval) {
         OkHttpClient client = new OkHttpClient();
         try {
-            Request request = new Request.Builder()
-                    .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/minutes/" + intervalValue + "?market=" + market + "&count=" + 200)
-                    .get()
-                    .addHeader("accept", "application/json")
-                    .build();
-            return client.newCall(request).execute().body().string();
+            if (interval.isMinutes()) {
+                Request minutesRequest = new Request.Builder()
+                        .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/minutes/" + interval.getValue() + "?market=" + market + "&count=" + 200)
+                        .get()
+                        .addHeader("accept", "application/json")
+                        .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
+                        .build();
 
+                String minutesResponse = decodeGzip(client.newCall(minutesRequest).execute());
+                redisService.setHashValue(market, interval.getValue(), minutesResponse);
+            } else {
+                Request restRequest = new Request.Builder()
+                        .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/" + interval.getValue() + "?market=" + market + "&count=" + 200)
+                        .get()
+                        .addHeader("accept", "application/json")
+                        .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
+                        .build();
+
+                String restResponse = decodeGzip(client.newCall(restRequest).execute());
+                redisService.setHashValue(market, interval.getValue(), restResponse);
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void callCandle(String market, Interval interval, int count) {
+    //rsi 계산
+    private double calculateRSI(String market, Interval interval, int period) {
 
-    }
+        String candles = redisService.getHashValue(market, interval.getValue());
 
-    private double calculateRSI(String candles, int period) {
         List<Double> closePrices = new ArrayList<>();
         JsonArray candleArray = gson.fromJson(candles, JsonArray.class);
         JsonArray sortedCandles = sortCandles(candleArray); //캔들 시간순으로 정렬
@@ -116,7 +133,7 @@ public class CoinIndicatorService {
         return 100 - (100 / (1 + RS));
     }
 
-
+    //캔들 날짜순으로 정렬
     private JsonArray sortCandles(JsonArray candleArray) {
         List<JsonElement> candleList = new ArrayList<>();
 
@@ -134,5 +151,22 @@ public class CoinIndicatorService {
         }
 
         return sortedCandles;
+    }
+
+    //gzip decode
+    private String decodeGzip(Response response) {
+        try {
+            GZIPInputStream gzipInputStream = new GZIPInputStream(response.body().byteStream());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream));
+            StringBuilder stringBuilder = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stringBuilder.append(line);
+            }
+            reader.close();
+            return stringBuilder.toString();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
