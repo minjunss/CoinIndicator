@@ -9,8 +9,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
-import com.squareup.okhttp.Response;
+import com.squareup.okhttp.ResponseBody;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -23,6 +24,7 @@ import java.util.zip.GZIPInputStream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CoinIndicatorService {
     private final Gson gson;
     private final RedisService redisService;
@@ -44,30 +46,30 @@ public class CoinIndicatorService {
     }
 
     //시세캔들 api 콜
-    //TODO: 반복 배치 1~2초
-    private void callCandles(String market, Interval interval) {
+    //TODO: 반복 배치 3초
+    public void callCandles(String market, Interval interval) {
         OkHttpClient client = new OkHttpClient();
         try {
+            Request request;
             if (interval.isMinutes()) {
-                Request minutesRequest = new Request.Builder()
+                request = new Request.Builder()
                         .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/minutes/" + interval.getValue() + "?market=" + market + "&count=" + 200)
                         .get()
                         .addHeader("accept", "application/json")
                         .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
                         .build();
-
-                String minutesResponse = decodeGzip(client.newCall(minutesRequest).execute());
-                redisService.setHashValue(market, interval.getValue(), minutesResponse);
             } else {
-                Request restRequest = new Request.Builder()
+                request = new Request.Builder()
                         .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/" + interval.getValue() + "?market=" + market + "&count=" + 200)
                         .get()
                         .addHeader("accept", "application/json")
                         .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
                         .build();
-
-                String restResponse = decodeGzip(client.newCall(restRequest).execute());
-                redisService.setHashValue(market, interval.getValue(), restResponse);
+            }
+            try (ResponseBody response = client.newCall(request).execute().body()) {
+                String responseBody = decodeGzip(response);
+                redisService.setHashValue(market, interval.getValue(), responseBody);
+                log.info("market = {}, interval = {}", market, interval);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -154,16 +156,14 @@ public class CoinIndicatorService {
     }
 
     //gzip decode
-    private String decodeGzip(Response response) {
-        try {
-            GZIPInputStream gzipInputStream = new GZIPInputStream(response.body().byteStream());
-            BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream));
+    private String decodeGzip(ResponseBody response) {
+        try (GZIPInputStream gzipInputStream = new GZIPInputStream(response.byteStream());
+             BufferedReader reader = new BufferedReader(new InputStreamReader(gzipInputStream))) {
             StringBuilder stringBuilder = new StringBuilder();
             String line;
             while ((line = reader.readLine()) != null) {
                 stringBuilder.append(line);
             }
-            reader.close();
             return stringBuilder.toString();
         } catch (IOException e) {
             throw new RuntimeException(e);
