@@ -1,6 +1,7 @@
 package CoinIndicator.CoinIndicator.service;
 
 import CoinIndicator.CoinIndicator.ApiConstants;
+import CoinIndicator.CoinIndicator.Coin;
 import CoinIndicator.CoinIndicator.Indicator;
 import CoinIndicator.CoinIndicator.Interval;
 import CoinIndicator.CoinIndicator.dto.CoinIndicatorResponse;
@@ -12,6 +13,7 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -28,11 +30,13 @@ import java.util.zip.GZIPInputStream;
 public class CoinIndicatorService {
     private final Gson gson;
     private final RedisService redisService;
+    private final SimpMessagingTemplate messagingTemplate;
+    private final int defaultRSIPeriod = 14;
 
-    //분봉 보조지표 값
-    public CoinIndicatorResponse getIndicatorByMinutes(String market, Interval interval, int period) {
+    //특정 보조지표 값
+    public CoinIndicatorResponse getIndicator(String market, Interval interval) {
 
-        double rsi = calculateRSI(market, interval, period);
+        double rsi = calculateRSI(market, interval);
 
         return CoinIndicatorResponse.builder()
                 .market(market)
@@ -43,6 +47,28 @@ public class CoinIndicatorService {
                                 .build()
                 ))
                 .build();
+    }
+
+    //전체 보조지표 값
+    public void getIndicators() {
+        List<CoinIndicatorResponse> response = new ArrayList<>();
+        for (Coin coin : Coin.values()) {
+            for (Interval interval : Interval.values()) {
+                double rsi = calculateRSI(coin.getValue(), interval);
+                response.add(
+                        CoinIndicatorResponse.builder()
+                                .market(coin.getValue())
+                                .indicators(List.of(
+                                        CoinIndicatorResponse.IndicatorValue.builder()
+                                                .indicator(Indicator.RSI)
+                                                .value(rsi)
+                                                .build()
+                                ))
+                                .build()
+                );
+            }
+        }
+        messagingTemplate.convertAndSend("/topic/indicators", response);
     }
 
     //시세캔들 api 콜
@@ -69,7 +95,7 @@ public class CoinIndicatorService {
             try (ResponseBody response = client.newCall(request).execute().body()) {
                 String responseBody = decodeGzip(response);
                 redisService.setHashValue(market, interval.getValue(), responseBody);
-                log.info("market = {}, interval = {}", market, interval);
+//                log.info("market = {}, interval = {}", market, interval);
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -77,7 +103,7 @@ public class CoinIndicatorService {
     }
 
     //rsi 계산
-    private double calculateRSI(String market, Interval interval, int period) {
+    private double calculateRSI(String market, Interval interval) {
 
         String candles = redisService.getHashValue(market, interval.getValue());
 
@@ -111,19 +137,19 @@ public class CoinIndicatorService {
         }
 
         // 초기 평균 이득과 평균 손실 계산 (주어진 period 기준)
-        if (gains.size() >= period) {
-            AU = gains.subList(0, period).stream().mapToDouble(Double::doubleValue).sum() / period;
-            AD = losses.subList(0, period).stream().mapToDouble(Double::doubleValue).sum() / period;
+        if (gains.size() >= defaultRSIPeriod) {
+            AU = gains.subList(0, defaultRSIPeriod).stream().mapToDouble(Double::doubleValue).sum() / defaultRSIPeriod;
+            AD = losses.subList(0, defaultRSIPeriod).stream().mapToDouble(Double::doubleValue).sum() / defaultRSIPeriod;
         }
 
         // period 이후부터 RSI 계산을 위한 반복
-        for (int i = period; i < gains.size(); i++) {
+        for (int i = defaultRSIPeriod; i < gains.size(); i++) {
             double gain = gains.get(i);
             double loss = losses.get(i);
 
             // 지수 이동 평균 계산
-            AU = (AU * (period - 1) + gain) / period;
-            AD = (AD * (period - 1) + loss) / period;
+            AU = (AU * (defaultRSIPeriod - 1) + gain) / defaultRSIPeriod;
+            AD = (AD * (defaultRSIPeriod - 1) + loss) / defaultRSIPeriod;
         }
 
         // 최종 RSI 계산

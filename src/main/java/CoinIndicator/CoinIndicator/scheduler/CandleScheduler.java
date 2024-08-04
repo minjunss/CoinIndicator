@@ -15,13 +15,14 @@ import org.springframework.stereotype.Component;
 public class CandleScheduler {
     private final CoinIndicatorService coinIndicatorService;
 
-    @Scheduled(fixedDelay = 2000, initialDelay = 1000)
+    @Scheduled(fixedDelay = 3000, initialDelay = 10000) //임시
     public void callCandleData() {
         try {
             for (Coin coin : Coin.values()) {
                 for (Interval interval : Interval.values()) {
-                        coinIndicatorService.callCandles(coin.getValue(), interval);
+                    coinIndicatorService.callCandles(coin.getValue(), interval);
                 }
+                coinIndicatorService.getIndicators();
                 Thread.sleep(500);
             }
         } catch (Exception e) {
