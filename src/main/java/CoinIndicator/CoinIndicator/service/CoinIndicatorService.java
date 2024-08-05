@@ -34,18 +34,22 @@ public class CoinIndicatorService {
     private final int defaultRSIPeriod = 14;
 
     //특정 보조지표 값
-    public CoinIndicatorResponse getIndicator(String market, Interval interval) {
-
-        double rsi = calculateRSI(market, interval);
+    public CoinIndicatorResponse getIndicator(String market) {
+        List<CoinIndicatorResponse.IndicatorValue> indicatorValues = new ArrayList<>();
+        for(Interval interval : Interval.values()) {
+            double rsi = calculateRSI(market, interval);
+            CoinIndicatorResponse.IndicatorValue indicatorValue =
+                    CoinIndicatorResponse.IndicatorValue.builder()
+                    .indicator(Indicator.RSI)
+                    .interval(interval)
+                    .value(rsi)
+                    .build();
+            indicatorValues.add(indicatorValue);
+        }
 
         return CoinIndicatorResponse.builder()
                 .market(market)
-                .indicators(List.of(
-                        CoinIndicatorResponse.IndicatorValue.builder()
-                                .indicator(Indicator.RSI)
-                                .value(rsi)
-                                .build()
-                ))
+                .indicators(indicatorValues)
                 .build();
     }
 
@@ -61,6 +65,7 @@ public class CoinIndicatorService {
                                 .indicators(List.of(
                                         CoinIndicatorResponse.IndicatorValue.builder()
                                                 .indicator(Indicator.RSI)
+                                                .interval(interval)
                                                 .value(rsi)
                                                 .build()
                                 ))
@@ -109,13 +114,14 @@ public class CoinIndicatorService {
 
         List<Double> closePrices = new ArrayList<>();
         JsonArray candleArray = gson.fromJson(candles, JsonArray.class);
-        JsonArray sortedCandles = sortCandles(candleArray); //캔들 시간순으로 정렬
-
+        JsonArray sortedCandles = new JsonArray();
+        if(candleArray != null) {
+            sortedCandles = sortCandles(candleArray); //캔들 시간순으로 정렬
+        }
         // 종가 캔들 생성
         for (JsonElement candle : sortedCandles) {
             closePrices.add(candle.getAsJsonObject().get("trade_price").getAsDouble());
         }
-
         // 초기 평균 이득과 평균 손실 초기화
         double AU = 0;
         double AD = 0;

@@ -1,6 +1,7 @@
 package CoinIndicator.CoinIndicator.dto;
 
 import CoinIndicator.CoinIndicator.Indicator;
+import CoinIndicator.CoinIndicator.Interval;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,6 +17,7 @@ public class CoinIndicatorResponse {
     @Getter
     public static class IndicatorValue {
         private Indicator indicator;
+        private Interval interval;
         private Double value;
     }
 }
