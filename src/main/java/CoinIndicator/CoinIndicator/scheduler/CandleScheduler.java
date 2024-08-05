@@ -1,7 +1,7 @@
 package CoinIndicator.CoinIndicator.scheduler;
 
-import CoinIndicator.CoinIndicator.Coin;
-import CoinIndicator.CoinIndicator.Interval;
+import CoinIndicator.CoinIndicator.domain.coin.Coin;
+import CoinIndicator.CoinIndicator.domain.coin.Interval;
 import CoinIndicator.CoinIndicator.service.CoinIndicatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

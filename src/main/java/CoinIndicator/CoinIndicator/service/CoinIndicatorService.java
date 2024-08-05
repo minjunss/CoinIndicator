@@ -1,9 +1,9 @@
 package CoinIndicator.CoinIndicator.service;
 
 import CoinIndicator.CoinIndicator.ApiConstants;
-import CoinIndicator.CoinIndicator.Coin;
-import CoinIndicator.CoinIndicator.Indicator;
-import CoinIndicator.CoinIndicator.Interval;
+import CoinIndicator.CoinIndicator.domain.coin.Coin;
+import CoinIndicator.CoinIndicator.domain.coin.Indicator;
+import CoinIndicator.CoinIndicator.domain.coin.Interval;
 import CoinIndicator.CoinIndicator.dto.CoinIndicatorResponse;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;

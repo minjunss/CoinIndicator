@@ -1,7 +1,7 @@
 package CoinIndicator.CoinIndicator.dto;
 
-import CoinIndicator.CoinIndicator.Indicator;
-import CoinIndicator.CoinIndicator.Interval;
+import CoinIndicator.CoinIndicator.domain.coin.Indicator;
+import CoinIndicator.CoinIndicator.domain.coin.Interval;
 import lombok.Builder;
 import lombok.Getter;
 
