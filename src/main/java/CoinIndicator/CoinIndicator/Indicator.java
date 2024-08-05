@@ -7,7 +7,8 @@ import lombok.Getter;
 @Getter
 public enum Indicator {
     RSI("RSI"),
-    MACD("MACD");
+    MACD("MACD"),
+    CCI("CCI");
 
     private final String value;
 }

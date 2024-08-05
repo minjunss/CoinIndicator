@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
@@ -36,15 +37,25 @@ public class CoinIndicatorService {
     //특정 보조지표 값
     public CoinIndicatorResponse getIndicator(String market) {
         List<CoinIndicatorResponse.IndicatorValue> indicatorValues = new ArrayList<>();
-        for(Interval interval : Interval.values()) {
+        for (Interval interval : Interval.values()) {
             double rsi = calculateRSI(market, interval);
-            CoinIndicatorResponse.IndicatorValue indicatorValue =
+            double cci = calculateCCI(market, interval);
+
+            CoinIndicatorResponse.IndicatorValue rsiValue =
                     CoinIndicatorResponse.IndicatorValue.builder()
-                    .indicator(Indicator.RSI)
-                    .interval(interval)
-                    .value(rsi)
-                    .build();
-            indicatorValues.add(indicatorValue);
+                            .indicator(Indicator.RSI)
+                            .interval(interval)
+                            .value(rsi)
+                            .build();
+            indicatorValues.add(rsiValue);
+
+            CoinIndicatorResponse.IndicatorValue cciValue =
+                    CoinIndicatorResponse.IndicatorValue.builder()
+                            .indicator(Indicator.CCI)
+                            .interval(interval)
+                            .value(cci)
+                            .build();
+            indicatorValues.add(cciValue);
         }
 
         return CoinIndicatorResponse.builder()
@@ -59,6 +70,7 @@ public class CoinIndicatorService {
         for (Coin coin : Coin.values()) {
             for (Interval interval : Interval.values()) {
                 double rsi = calculateRSI(coin.getValue(), interval);
+                double cci = calculateCCI(coin.getValue(), interval);
                 response.add(
                         CoinIndicatorResponse.builder()
                                 .market(coin.getValue())
@@ -67,6 +79,11 @@ public class CoinIndicatorService {
                                                 .indicator(Indicator.RSI)
                                                 .interval(interval)
                                                 .value(rsi)
+                                                .build(),
+                                        CoinIndicatorResponse.IndicatorValue.builder()
+                                                .indicator(Indicator.CCI)
+                                                .interval(interval)
+                                                .value(cci)
                                                 .build()
                                 ))
                                 .build()
@@ -115,7 +132,7 @@ public class CoinIndicatorService {
         List<Double> closePrices = new ArrayList<>();
         JsonArray candleArray = gson.fromJson(candles, JsonArray.class);
         JsonArray sortedCandles = new JsonArray();
-        if(candleArray != null) {
+        if (candleArray != null) {
             sortedCandles = sortCandles(candleArray); //캔들 시간순으로 정렬
         }
         // 종가 캔들 생성
@@ -165,6 +182,52 @@ public class CoinIndicatorService {
 
         double RS = AU / AD;
         return 100 - (100 / (1 + RS));
+    }
+
+    //cci 계산
+    private double calculateCCI(String market, Interval interval) {
+        String candles = redisService.getHashValue(market, interval.getValue());
+
+        List<Double> highPrices = new ArrayList<>();
+        List<Double> lowPrices = new ArrayList<>();
+        List<Double> tradePrices = new ArrayList<>();
+
+        JsonArray candleArray = gson.fromJson(candles, JsonArray.class);
+        JsonArray sortedCandles = new JsonArray();
+
+        if (candleArray != null) {
+            sortedCandles = sortCandles(candleArray); //캔들 시간순으로 정렬
+        }
+
+        for (JsonElement candle : sortedCandles) {
+            highPrices.add(candle.getAsJsonObject().get("high_price").getAsDouble());
+            lowPrices.add(candle.getAsJsonObject().get("low_price").getAsDouble());
+            tradePrices.add(candle.getAsJsonObject().get("trade_price").getAsDouble());
+        }
+
+        double TP = 0;
+        double SMA;
+        double MAD;
+        double CV = 0.015;
+
+        List<Double> TPList = new ArrayList<>();
+        List<Double> MADList = new ArrayList<>();
+
+        for (int i = 0; i < highPrices.size(); i++) {
+            TP = (highPrices.get(i) + lowPrices.get(i) + tradePrices.get(i)) / 3.0;
+            TPList.add(TP);
+        }
+
+        DoubleSummaryStatistics tpStats = TPList.stream().mapToDouble(Double::doubleValue).summaryStatistics();
+        SMA = tpStats.getAverage();
+
+        for (Double tp : TPList) {
+            MADList.add(Math.abs(tp - SMA));
+        }
+        DoubleSummaryStatistics madStats = MADList.stream().mapToDouble(Double::doubleValue).summaryStatistics();
+        MAD = madStats.getAverage();
+
+        return (TP - SMA) / (CV * MAD);
     }
 
     //캔들 날짜순으로 정렬
