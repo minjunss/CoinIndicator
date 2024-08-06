@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.domain.user;
+package CoinIndicator.CoinIndicator.user.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.service;
+package CoinIndicator.CoinIndicator.redis;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.HashOperations;

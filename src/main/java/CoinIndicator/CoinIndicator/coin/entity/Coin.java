@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.domain.coin;
+package CoinIndicator.CoinIndicator.coin.entity;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

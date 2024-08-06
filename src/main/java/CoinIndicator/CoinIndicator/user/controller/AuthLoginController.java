@@ -1,7 +1,7 @@
-package CoinIndicator.CoinIndicator.controller;
+package CoinIndicator.CoinIndicator.user.controller;
 
-import CoinIndicator.CoinIndicator.dto.UserInfoResponse;
-import CoinIndicator.CoinIndicator.service.AuthService;
+import CoinIndicator.CoinIndicator.user.dto.UserInfoResponse;
+import CoinIndicator.CoinIndicator.user.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

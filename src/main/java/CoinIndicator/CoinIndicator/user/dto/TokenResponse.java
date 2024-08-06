@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.dto;
+package CoinIndicator.CoinIndicator.user.dto;
 
 import lombok.Data;
 

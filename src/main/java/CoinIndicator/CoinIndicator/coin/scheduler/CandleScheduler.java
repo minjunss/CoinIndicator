@@ -1,8 +1,8 @@
-package CoinIndicator.CoinIndicator.scheduler;
+package CoinIndicator.CoinIndicator.coin.scheduler;
 
-import CoinIndicator.CoinIndicator.domain.coin.Coin;
-import CoinIndicator.CoinIndicator.domain.coin.Interval;
-import CoinIndicator.CoinIndicator.service.CoinIndicatorService;
+import CoinIndicator.CoinIndicator.coin.entity.Coin;
+import CoinIndicator.CoinIndicator.coin.entity.Interval;
+import CoinIndicator.CoinIndicator.coin.service.CoinIndicatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

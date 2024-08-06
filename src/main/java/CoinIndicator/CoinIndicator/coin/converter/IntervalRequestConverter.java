@@ -1,6 +1,6 @@
-package CoinIndicator.CoinIndicator.global.converter;
+package CoinIndicator.CoinIndicator.coin.converter;
 
-import CoinIndicator.CoinIndicator.domain.coin.Interval;
+import CoinIndicator.CoinIndicator.coin.entity.Interval;
 import org.springframework.core.convert.converter.Converter;
 
 public class IntervalRequestConverter implements Converter<String, Interval> {

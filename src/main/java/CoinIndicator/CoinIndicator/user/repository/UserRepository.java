@@ -1,6 +1,6 @@
-package CoinIndicator.CoinIndicator.repository;
+package CoinIndicator.CoinIndicator.user.repository;
 
-import CoinIndicator.CoinIndicator.domain.user.User;
+import CoinIndicator.CoinIndicator.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

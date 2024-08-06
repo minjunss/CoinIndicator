@@ -1,10 +1,11 @@
-package CoinIndicator.CoinIndicator.service;
+package CoinIndicator.CoinIndicator.coin.service;
 
 import CoinIndicator.CoinIndicator.ApiConstants;
-import CoinIndicator.CoinIndicator.domain.coin.Coin;
-import CoinIndicator.CoinIndicator.domain.coin.Indicator;
-import CoinIndicator.CoinIndicator.domain.coin.Interval;
-import CoinIndicator.CoinIndicator.dto.CoinIndicatorResponse;
+import CoinIndicator.CoinIndicator.coin.entity.Coin;
+import CoinIndicator.CoinIndicator.coin.entity.Indicator;
+import CoinIndicator.CoinIndicator.coin.entity.Interval;
+import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
+import CoinIndicator.CoinIndicator.redis.RedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;

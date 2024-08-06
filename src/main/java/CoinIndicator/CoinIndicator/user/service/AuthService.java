@@ -1,10 +1,10 @@
-package CoinIndicator.CoinIndicator.service;
+package CoinIndicator.CoinIndicator.user.service;
 
-import CoinIndicator.CoinIndicator.client.GoogleClient;
-import CoinIndicator.CoinIndicator.domain.user.User;
-import CoinIndicator.CoinIndicator.dto.TokenResponse;
-import CoinIndicator.CoinIndicator.dto.UserInfoResponse;
-import CoinIndicator.CoinIndicator.repository.UserRepository;
+import CoinIndicator.CoinIndicator.user.auth.client.GoogleClient;
+import CoinIndicator.CoinIndicator.user.entity.User;
+import CoinIndicator.CoinIndicator.user.dto.TokenResponse;
+import CoinIndicator.CoinIndicator.user.dto.UserInfoResponse;
+import CoinIndicator.CoinIndicator.user.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;

@@ -1,6 +1,6 @@
 package CoinIndicator.CoinIndicator.config;
 
-import CoinIndicator.CoinIndicator.global.converter.IntervalRequestConverter;
+import CoinIndicator.CoinIndicator.coin.converter.IntervalRequestConverter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
