@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.user.controller;
+package CoinIndicator.CoinIndicator.coin.controller;
 
 import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
 import CoinIndicator.CoinIndicator.coin.service.CoinIndicatorService;

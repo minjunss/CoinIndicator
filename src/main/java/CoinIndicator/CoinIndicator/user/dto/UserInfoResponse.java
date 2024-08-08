@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class UserInfoResponse {
     private String name;
     private String email;
+    private boolean isLoggedIn;
     private String picture;
 }

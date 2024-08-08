@@ -9,6 +9,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,7 +34,7 @@ public class AuthService {
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String GOOGLE_REDIRECT_URI;
 
-    public UserInfoResponse login(String code) {
+    public UserInfoResponse login(String code, HttpSession session) {
         UserInfoResponse userInfo = new UserInfoResponse();
         TokenResponse tokenResponse = googleClient.getToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, GOOGLE_REDIRECT_URI, "authorization_code");
 
@@ -66,7 +67,10 @@ public class AuthService {
                         .email(email)
                         .name(name)
                         .picture(picture)
+                        .isLoggedIn(true)
                         .build();
+
+                session.setAttribute("userInfo", userInfo);
             } else {
                 //exception
                 log.error("Invalid ID token.");
@@ -77,4 +81,7 @@ public class AuthService {
         return userInfo;
     }
 
+    public void logout(HttpSession session) {
+        session.removeAttribute("userInfo");
+    }
 }
