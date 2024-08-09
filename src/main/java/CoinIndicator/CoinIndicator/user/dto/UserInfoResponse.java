@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,4 +16,5 @@ public class UserInfoResponse {
     private String email;
     private boolean isLoggedIn;
     private String picture;
+    private Set<String> favorites;
 }
