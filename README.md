@@ -21,5 +21,7 @@ https://gaudy-tang-0b7.notion.site/7285dcefad02447db25e102e39be3a74?v=e442d17d36
 - React
 - JavaScript
 
+<br>
+
 # Web Repository
 https://github.com/minjunss/CoinIndicator-Web
