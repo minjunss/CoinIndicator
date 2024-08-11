@@ -5,6 +5,8 @@ import CoinIndicator.CoinIndicator.coin.entity.Coin;
 import CoinIndicator.CoinIndicator.coin.entity.Indicator;
 import CoinIndicator.CoinIndicator.coin.entity.Interval;
 import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
+import CoinIndicator.CoinIndicator.discord.dto.DiscordMessageRequest;
+import CoinIndicator.CoinIndicator.discord.service.DiscordService;
 import CoinIndicator.CoinIndicator.redis.RedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -14,16 +16,15 @@ import com.squareup.okhttp.Request;
 import com.squareup.okhttp.ResponseBody;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 @Service
@@ -33,7 +34,10 @@ public class CoinIndicatorService {
     private final Gson gson;
     private final RedisService redisService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DiscordService discordService;
     private final int defaultRSIPeriod = 14;
+    @Value("${application-url}")
+    private String applicationUrl;
 
     //특정 보조지표 값
     public CoinIndicatorResponse getIndicator(String market) {
@@ -182,7 +186,20 @@ public class CoinIndicatorService {
         }
 
         double RS = AU / AD;
-        return 100 - (100 / (1 + RS));
+
+        double RSI = 100 - (100 / (1 + RS));
+
+        String key = market + interval + "RSI ALERT";
+        if (RSI >= 70 || RSI <= 30) {
+            if (redisService.getValue(key) == null) {
+                redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
+                String message = market + " " + interval + " RSI is " + Math.round(RSI * 100) / 100.0;
+                DiscordMessageRequest.Embed embed = new DiscordMessageRequest.Embed("Check Here!", applicationUrl);
+                DiscordMessageRequest discordMessageRequest = new DiscordMessageRequest(message, Collections.singletonList(embed));
+                discordService.alertDiscord(discordMessageRequest);
+            }
+        }
+        return RSI;
     }
 
     //cci 계산
@@ -228,7 +245,20 @@ public class CoinIndicatorService {
         DoubleSummaryStatistics madStats = MADList.stream().mapToDouble(Double::doubleValue).summaryStatistics();
         MAD = madStats.getAverage();
 
-        return (TP - SMA) / (CV * MAD);
+        double CCI = (TP - SMA) / (CV * MAD);
+
+        String key = market + interval + "CCI ALERT";
+        if (CCI >= 100 || CCI <= -100) {
+            if (redisService.getValue(key) == null) {
+                redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
+                String message = market + " " + interval + " CCI is " + Math.round(CCI * 100) / 100.0;;
+                DiscordMessageRequest.Embed embed = new DiscordMessageRequest.Embed("Check Here!", applicationUrl);
+                DiscordMessageRequest discordMessageRequest = new DiscordMessageRequest(message, Collections.singletonList(embed));
+                discordService.alertDiscord(discordMessageRequest);
+            }
+        }
+
+        return CCI;
     }
 
     //캔들 날짜순으로 정렬
