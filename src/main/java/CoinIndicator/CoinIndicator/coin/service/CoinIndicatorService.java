@@ -1,21 +1,19 @@
 package CoinIndicator.CoinIndicator.coin.service;
 
-import CoinIndicator.CoinIndicator.ApiConstants;
+import CoinIndicator.CoinIndicator.coin.client.UpbitClient;
+import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
 import CoinIndicator.CoinIndicator.coin.entity.Coin;
 import CoinIndicator.CoinIndicator.coin.entity.Indicator;
 import CoinIndicator.CoinIndicator.coin.entity.Interval;
-import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
 import CoinIndicator.CoinIndicator.discord.dto.DiscordMessageRequest;
 import CoinIndicator.CoinIndicator.discord.service.DiscordService;
 import CoinIndicator.CoinIndicator.redis.RedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.ResponseBody;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.ResponseBody;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -33,6 +31,7 @@ import java.util.zip.GZIPInputStream;
 public class CoinIndicatorService {
     private final Gson gson;
     private final RedisService redisService;
+    private final UpbitClient upbitClient;
     private final SimpMessagingTemplate messagingTemplate;
     private final DiscordService discordService;
     private final int defaultRSIPeriod = 14;
@@ -101,30 +100,17 @@ public class CoinIndicatorService {
     //시세캔들 api 콜
     //TODO: 반복 배치 3초
     public void callCandles(String market, Interval interval) {
-        OkHttpClient client = new OkHttpClient();
         try {
-            Request request;
+            String responseBody;
             if (interval.isMinutes()) {
-                request = new Request.Builder()
-                        .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/minutes/" + interval.getValue() + "?market=" + market + "&count=" + 200)
-                        .get()
-                        .addHeader("accept", "application/json")
-                        .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
-                        .build();
+                responseBody = upbitClient.getMinutesCandles(interval.getValue(), market, 200);
             } else {
-                request = new Request.Builder()
-                        .url(ApiConstants.UPBIT_CANDLE_API_BASE_URL + "/" + interval.getValue() + "?market=" + market + "&count=" + 200)
-                        .get()
-                        .addHeader("accept", "application/json")
-                        .addHeader("Accept-Encoding", "gzip") //시세 API는 gzip 압축 지원
-                        .build();
+                responseBody = upbitClient.getCandles(interval.getValue(), market, 200);
             }
-            try (ResponseBody response = client.newCall(request).execute().body()) {
-                String responseBody = decodeGzip(response);
-                redisService.setHashValue(market, interval.getValue(), responseBody);
-//                log.info("market = {}, interval = {}", market, interval);
-            }
-        } catch (IOException e) {
+
+            redisService.setHashValue(market, interval.getValue(), responseBody);
+//            log.info("market = {}, interval = {}", market, interval);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -251,7 +237,7 @@ public class CoinIndicatorService {
         if (CCI >= 200 || CCI <= -200) {
             if (redisService.getValue(key) == null) {
                 redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
-                String message = market + " " + interval + " CCI is " + Math.round(CCI * 100) / 100.0;;
+                String message = market + " " + interval + " CCI is " + Math.round(CCI * 100) / 100.0;
                 DiscordMessageRequest.Embed embed = new DiscordMessageRequest.Embed("Check Here!", applicationUrl);
                 DiscordMessageRequest discordMessageRequest = new DiscordMessageRequest(message, Collections.singletonList(embed));
                 discordService.alertDiscord(discordMessageRequest);

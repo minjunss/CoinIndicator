@@ -44,12 +44,14 @@ dependencies {
 	//redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 	//OKHttp
-	implementation group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
+//	implementation group: 'com.squareup.okhttp', name: 'okhttp', version: '2.7.5'
+	implementation 'com.squareup.okhttp3:okhttp:4.9.3'
 	//websocket
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	//feign client
 	implementation platform("org.springframework.cloud:spring-cloud-dependencies:2023.0.2")
 	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	implementation 'io.github.openfeign:feign-okhttp:11.7'
 	//lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
