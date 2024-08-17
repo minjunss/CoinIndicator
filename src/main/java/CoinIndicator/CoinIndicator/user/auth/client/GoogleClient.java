@@ -1,6 +1,6 @@
 package CoinIndicator.CoinIndicator.user.auth.client;
 
-import CoinIndicator.CoinIndicator.config.FeignClientConfig;
+import CoinIndicator.CoinIndicator.config.feignClient.FeignClientConfig;
 import CoinIndicator.CoinIndicator.user.dto.TokenResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;

@@ -5,10 +5,11 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum Indicator {
-    RSI("RSI"),
-//    MACD("MACD"),
-    CCI("CCI");
+public enum UpbitCoin {
+    BTC("KRW-BTC"),
+    ETH("KRW-ETH"),
+    SOL("KRW-SOL"),
+    XRP("KRW-XRP");
 
     private final String value;
 }

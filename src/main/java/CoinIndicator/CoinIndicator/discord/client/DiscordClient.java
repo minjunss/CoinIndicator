@@ -1,6 +1,6 @@
 package CoinIndicator.CoinIndicator.discord.client;
 
-import CoinIndicator.CoinIndicator.config.FeignClientConfig;
+import CoinIndicator.CoinIndicator.config.feignClient.FeignClientConfig;
 import CoinIndicator.CoinIndicator.discord.dto.DiscordMessageRequest;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;

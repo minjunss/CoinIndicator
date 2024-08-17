@@ -5,11 +5,11 @@ import feign.RequestTemplate;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class GzipRequestInterceptor implements RequestInterceptor {
+public class UpbitRequestInterceptor implements RequestInterceptor {
 
     @Override
     public void apply(RequestTemplate template) {
         template.header("Accept", "application/json");
-        template.header("Accept-Encoding", "gzip");
+//        template.header("Accept-Encoding", "gzip");
     }
 }

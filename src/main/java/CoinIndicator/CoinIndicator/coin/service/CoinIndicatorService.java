@@ -1,16 +1,18 @@
 package CoinIndicator.CoinIndicator.coin.service;
 
+import CoinIndicator.CoinIndicator.coin.client.BinanceClient;
 import CoinIndicator.CoinIndicator.coin.client.UpbitClient;
 import CoinIndicator.CoinIndicator.coin.dto.CoinIndicatorResponse;
 import CoinIndicator.CoinIndicator.coin.entity.Coin;
 import CoinIndicator.CoinIndicator.coin.entity.Indicator;
-import CoinIndicator.CoinIndicator.coin.entity.Interval;
-import CoinIndicator.CoinIndicator.discord.dto.DiscordMessageRequest;
+import CoinIndicator.CoinIndicator.coin.entity.UnifiedCoin;
+import CoinIndicator.CoinIndicator.coin.entity.UnifiedInterval;
 import CoinIndicator.CoinIndicator.discord.service.DiscordService;
 import CoinIndicator.CoinIndicator.redis.RedisService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.ResponseBody;
@@ -21,8 +23,10 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.DoubleSummaryStatistics;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 @Service
@@ -32,6 +36,7 @@ public class CoinIndicatorService {
     private final Gson gson;
     private final RedisService redisService;
     private final UpbitClient upbitClient;
+    private final BinanceClient binanceClient;
     private final SimpMessagingTemplate messagingTemplate;
     private final DiscordService discordService;
     private final int defaultRSIPeriod = 14;
@@ -41,9 +46,9 @@ public class CoinIndicatorService {
     //특정 보조지표 값
     public CoinIndicatorResponse getIndicator(String market) {
         List<CoinIndicatorResponse.IndicatorValue> indicatorValues = new ArrayList<>();
-        for (Interval interval : Interval.values()) {
-            double rsi = calculateRSI(market, interval);
-            double cci = calculateCCI(market, interval);
+        for (UnifiedInterval interval : UnifiedInterval.values()) {
+            double rsi = calculateRSI(market, interval.getBinanceValue());
+            double cci = calculateCCI(market, interval.getBinanceValue());
 
             CoinIndicatorResponse.IndicatorValue rsiValue =
                     CoinIndicatorResponse.IndicatorValue.builder()
@@ -71,10 +76,16 @@ public class CoinIndicatorService {
     //전체 보조지표 값
     public void getIndicators() {
         List<CoinIndicatorResponse> response = new ArrayList<>();
-        for (Coin coin : Coin.values()) {
-            for (Interval interval : Interval.values()) {
-                double rsi = calculateRSI(coin.getValue(), interval);
-                double cci = calculateCCI(coin.getValue(), interval);
+        for (UnifiedCoin coin : UnifiedCoin.values()) {
+            for (UnifiedInterval interval : UnifiedInterval.values()) {
+                double rsi = 0, cci = 0;
+                if (coin.getExchange() == Coin.Exchange.BINANCE) {
+                    rsi = calculateRSI(coin.getValue(), interval.getBinanceValue());
+                    cci = calculateCCI(coin.getValue(), interval.getBinanceValue());
+                } else if (coin.getExchange() == Coin.Exchange.UPBIT) {
+                    rsi = calculateRSI(coin.getValue(), interval.getUpbitValue());
+                    cci = calculateCCI(coin.getValue(), interval.getUpbitValue());
+                }
                 response.add(
                         CoinIndicatorResponse.builder()
                                 .market(coin.getValue())
@@ -97,28 +108,49 @@ public class CoinIndicatorService {
         messagingTemplate.convertAndSend("/topic/indicators", response);
     }
 
-    //시세캔들 api 콜
-    //TODO: 반복 배치 3초
-    public void callCandles(String market, Interval interval) {
+    //시세캔들 upbit api 콜
+    public void callUpbitCandles(String market, UnifiedInterval interval) {
         try {
             String responseBody;
             if (interval.isMinutes()) {
-                responseBody = upbitClient.getMinutesCandles(interval.getValue(), market, 200);
+                responseBody = upbitClient.getMinutesCandles(interval.getUpbitValue(), market, 200);
             } else {
-                responseBody = upbitClient.getCandles(interval.getValue(), market, 200);
+                responseBody = upbitClient.getCandles(interval.getUpbitValue(), market, 200);
             }
 
-            redisService.setHashValue(market, interval.getValue(), responseBody);
-//            log.info("market = {}, interval = {}", market, interval);
+            redisService.setHashValue(market, interval.getUpbitValue(), responseBody);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    //시세캔들 binance api 콜
+    public void callBinanceCandles(String symbol, UnifiedInterval interval) {
+        try {
+            String responseBody;
+            responseBody = binanceClient.getCandles(symbol, interval.getBinanceValue(), "200");
+
+            JsonArray candles = gson.fromJson(responseBody, JsonArray.class);
+            JsonArray reformCandles = new JsonArray();
+
+            for (JsonElement binanceCandle : candles) {
+                JsonObject candle = new JsonObject();
+                candle.addProperty("trade_price", binanceCandle.getAsJsonArray().get(4).getAsDouble());
+                candle.addProperty("candle_date_time_utc", binanceCandle.getAsJsonArray().get(6).getAsDouble());
+                candle.addProperty("high_price", binanceCandle.getAsJsonArray().get(2).getAsDouble());
+                candle.addProperty("low_price", binanceCandle.getAsJsonArray().get(3).getAsDouble());
+                reformCandles.add(candle);
+            }
+            redisService.setHashValue(symbol, interval.getBinanceValue(), reformCandles.toString());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     //rsi 계산
-    private double calculateRSI(String market, Interval interval) {
+    private double calculateRSI(String market, String interval) {
 
-        String candles = redisService.getHashValue(market, interval.getValue());
+        String candles = redisService.getHashValue(market, interval);
 
         List<Double> closePrices = new ArrayList<>();
         JsonArray candleArray = gson.fromJson(candles, JsonArray.class);
@@ -175,7 +207,7 @@ public class CoinIndicatorService {
 
         double RSI = 100 - (100 / (1 + RS));
 
-        String key = market + interval + "RSI ALERT";
+        /*String key = market + interval + "RSI ALERT";
         if (RSI >= 70 || RSI <= 30) {
             if (redisService.getValue(key) == null) {
                 redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
@@ -184,13 +216,13 @@ public class CoinIndicatorService {
                 DiscordMessageRequest discordMessageRequest = new DiscordMessageRequest(message, Collections.singletonList(embed));
                 discordService.alertDiscord(discordMessageRequest);
             }
-        }
+        }*/
         return RSI;
     }
 
     //cci 계산
-    private double calculateCCI(String market, Interval interval) {
-        String candles = redisService.getHashValue(market, interval.getValue());
+    private double calculateCCI(String market, String interval) {
+        String candles = redisService.getHashValue(market, interval);
 
         List<Double> highPrices = new ArrayList<>();
         List<Double> lowPrices = new ArrayList<>();
@@ -233,7 +265,7 @@ public class CoinIndicatorService {
 
         double CCI = (TP - SMA) / (CV * MAD);
 
-        String key = market + interval + "CCI ALERT";
+        /*String key = market + interval + "CCI ALERT";
         if (CCI >= 200 || CCI <= -200) {
             if (redisService.getValue(key) == null) {
                 redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
@@ -242,7 +274,7 @@ public class CoinIndicatorService {
                 DiscordMessageRequest discordMessageRequest = new DiscordMessageRequest(message, Collections.singletonList(embed));
                 discordService.alertDiscord(discordMessageRequest);
             }
-        }
+        }*/
 
         return CCI;
     }

@@ -1,15 +1,10 @@
 package CoinIndicator.CoinIndicator.coin.entity;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+public interface Coin {
+    String getValue();
+    Exchange getExchange();
 
-@RequiredArgsConstructor
-@Getter
-public enum Coin {
-    BTC("KRW-BTC"),
-    ETH("KRW-ETH"),
-    SOL("KRW-SOL"),
-    XRP("KRW-XRP");
-
-    private final String value;
+    enum Exchange {
+        BINANCE, UPBIT
+    }
 }

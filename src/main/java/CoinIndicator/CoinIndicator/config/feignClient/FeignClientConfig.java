@@ -1,4 +1,4 @@
-package CoinIndicator.CoinIndicator.config;
+package CoinIndicator.CoinIndicator.config.feignClient;
 
 import feign.FeignException;
 import feign.Response;

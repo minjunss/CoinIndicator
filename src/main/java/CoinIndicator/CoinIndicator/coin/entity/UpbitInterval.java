@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Getter
-public enum Interval {
+public enum UpbitInterval {
     FIVE_MINUTES("5", true),
     FIFTEEN_MINUTES("15", true),
     THIRTY_MINUTES("30", true),
@@ -18,8 +18,8 @@ public enum Interval {
     private final String value;
     private final boolean isMinutes;
 
-    public static Interval of(String interval) {
-        for (Interval itv : Interval.values()) {
+    public static UpbitInterval of(String interval) {
+        for (UpbitInterval itv : UpbitInterval.values()) {
             if (itv.getValue().equals(interval)) {
                 return itv;
             }

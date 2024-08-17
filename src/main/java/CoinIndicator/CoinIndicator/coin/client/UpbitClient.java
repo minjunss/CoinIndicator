@@ -1,6 +1,6 @@
 package CoinIndicator.CoinIndicator.coin.client;
 
-import CoinIndicator.CoinIndicator.config.UpbitFeignClientConfig;
+import CoinIndicator.CoinIndicator.config.feignClient.UpbitFeignClientConfig;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
