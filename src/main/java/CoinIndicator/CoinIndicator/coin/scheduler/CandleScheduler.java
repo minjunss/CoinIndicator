@@ -21,6 +21,7 @@ public class CandleScheduler {
             for (Coin coin : Coin.values()) {
                 for (Interval interval : Interval.values()) {
                     coinIndicatorService.callCandles(coin.getValue(), interval);
+                    Thread.sleep(50);
                 }
                 coinIndicatorService.getIndicators();
                 Thread.sleep(500);

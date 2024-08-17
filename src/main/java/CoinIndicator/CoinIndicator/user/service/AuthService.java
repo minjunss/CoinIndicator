@@ -9,6 +9,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,15 +34,20 @@ public class AuthService {
     private String GOOGLE_CLIENT_SECRET;
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String GOOGLE_REDIRECT_URI;
+    private GoogleIdTokenVerifier verifier;
+
+    @PostConstruct
+    public void init() {
+        verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
+                .build();
+        log.info("GoogleIdTokenVerifier initialized.");
+    }
 
     public UserInfoResponse login(String code, HttpSession session) {
         UserInfoResponse userInfo = new UserInfoResponse();
         TokenResponse tokenResponse = googleClient.getToken(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, code, GOOGLE_REDIRECT_URI, "authorization_code");
 
-        //idToken으로 유저 정보 가져오기
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
-                .setAudience(Collections.singletonList(GOOGLE_CLIENT_ID))
-                .build();
         try {
             GoogleIdToken idToken = verifier.verify(tokenResponse.getId_token());
 

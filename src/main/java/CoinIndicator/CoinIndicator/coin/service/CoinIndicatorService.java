@@ -248,7 +248,7 @@ public class CoinIndicatorService {
         double CCI = (TP - SMA) / (CV * MAD);
 
         String key = market + interval + "CCI ALERT";
-        if (CCI >= 100 || CCI <= -100) {
+        if (CCI >= 200 || CCI <= -200) {
             if (redisService.getValue(key) == null) {
                 redisService.setValueWithExpireTime(key, true, 5, TimeUnit.MINUTES);
                 String message = market + " " + interval + " CCI is " + Math.round(CCI * 100) / 100.0;;
