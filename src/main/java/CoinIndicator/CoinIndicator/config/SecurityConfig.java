@@ -1,7 +1,10 @@
 package CoinIndicator.CoinIndicator.config;
 
+import CoinIndicator.CoinIndicator.user.entity.Role;
+import CoinIndicator.CoinIndicator.user.service.AuthService;
 import jakarta.servlet.http.HttpSessionEvent;
 import jakarta.servlet.http.HttpSessionListener;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,8 +26,9 @@ public class SecurityConfig {
         return request -> {
             CorsConfiguration config = new CorsConfiguration();
             config.setAllowedHeaders(Collections.singletonList("*"));
-            config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "OPTIONS"));
-            config.setAllowedOriginPatterns(Collections.singletonList("*"));
+            config.setAllowedMethods(List.of("GET", "POST", "DELETE"));
+//            config.setAllowedOriginPatterns(Collections.singletonList("*"));
+            config.setAllowedOriginPatterns(List.of("http://coinindicator.site", "https://coinindicator.site", "http://localhost:8080", "http://localhost:3000"));
             config.setAllowCredentials(true);
             config.setMaxAge(3600L);
             return config;
@@ -47,7 +51,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .cors(corsConfig -> corsConfig.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
@@ -56,20 +60,21 @@ public class SecurityConfig {
                 .sessionManagement((sessionManagement) ->
                         sessionManagement
                                 .sessionFixation().migrateSession()
-                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                                 .maximumSessions(4)
                                 .expiredUrl("/"))
                 .authorizeHttpRequests((authorizeRequests) ->
                         authorizeRequests
-//                                .requestMatchers("").permitAll()
-                                .anyRequest().permitAll())
+                                .requestMatchers("/v1/feedback**").authenticated()
+                                .requestMatchers("/v1/**manage**").hasAuthority(Role.ADMIN.getKey())
+                                .anyRequest().permitAll());
 
-                .oauth2Login(oauth2 ->
-                        oauth2.defaultSuccessUrl("/")
-                                .failureUrl("/login?error=true"))
-                .logout(logout ->
-                        logout.logoutSuccessUrl("/"))
-                ;
+//                .oauth2Login(oauth2 ->
+//                        oauth2.defaultSuccessUrl("/")
+//                                .failureUrl("/login?error=true"))
+//                .logout(logout ->
+//                        logout.logoutSuccessUrl("/"))
+//                ;
 
         return http.build();
     }

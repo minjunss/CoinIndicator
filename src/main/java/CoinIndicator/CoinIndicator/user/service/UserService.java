@@ -9,17 +9,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserInfoResponse getUserInfoBySession(HttpSession session) {
         UserInfoResponse userInfoResponse = (UserInfoResponse) session.getAttribute("userInfo");
         if (userInfoResponse != null) {
             User user = userRepository.findByEmail(userInfoResponse.getEmail()).orElseThrow(() ->
                     new IllegalArgumentException("Not Found User"));
+
+            List<String> favoriteList = new ArrayList<>(user.getFavorites());
 
             userInfoResponse.setFavorites(user.getFavorites());
         }
